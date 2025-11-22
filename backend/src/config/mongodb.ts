@@ -5,11 +5,19 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-const MONGODB_URI = process.env.MONGODB_URI || "";
-const DB_NAME = process.env.MONGODB_DB_NAME || "planeja_ai";
-const FORCE_TLS = process.env.MONGODB_TLS === "true";
-const ALLOW_INVALID = process.env.MONGODB_ALLOW_INVALID_CERTS === "true";
-const CA_FILE = process.env.MONGODB_CA_FILE?.trim();
+const PLACEHOLDER = "__EMPTY__";
+const getEnv = (k: string, d?: string) => {
+  const v = process.env[k];
+  if (v === undefined) return d;
+  if (v === PLACEHOLDER) return d;
+  return v;
+};
+
+const MONGODB_URI = getEnv("MONGODB_URI", "") as string;
+const DB_NAME = getEnv("MONGODB_DB_NAME", "planeja_ai") as string;
+const FORCE_TLS = (getEnv("MONGODB_TLS", "false") as string) === "true";
+const ALLOW_INVALID = (getEnv("MONGODB_ALLOW_INVALID_CERTS", "false") as string) === "true";
+const CA_FILE = getEnv("MONGODB_CA_FILE", "")?.trim();
 
 let client: MongoClient | null = null;
 let db: Db | null = null;

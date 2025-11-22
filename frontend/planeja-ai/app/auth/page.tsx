@@ -93,10 +93,22 @@ export default function AuthPage() {
     try {
       const res = await api.auth.register(registerData);
       if (!res.ok) {
-        const message =
-          "Falha ao registrar. Verifique os dados e tente novamente.";
-        setError(message);
-        toast.error(message);
+        // Extract validation errors from API response
+        const responseData = res.data as unknown as { errors?: { msg: string }[]; message?: string };
+        const errors = responseData?.errors;
+
+        if (errors && Array.isArray(errors) && errors.length > 0) {
+          // Show the first validation error message
+          const firstError = errors[0];
+          const errorMessage = firstError.msg || "Dados inválidos";
+          setError(errorMessage);
+          toast.error(errorMessage);
+        } else {
+          // Fallback to generic message or API message
+          const message = responseData?.message || "Falha ao registrar. Verifique os dados e tente novamente.";
+          setError(message);
+          toast.error(message);
+        }
         return;
       }
       const authPayload = res.data as AuthResponsePayload | undefined;
@@ -197,6 +209,9 @@ export default function AuthPage() {
                   }
                   required
                 />
+                <p className="text-xs text-muted-foreground">
+                  Nome deve ter entre 2 e 50 caracteres
+                </p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="register-email">Email</Label>
@@ -213,6 +228,9 @@ export default function AuthPage() {
                   }
                   required
                 />
+                <p className="text-xs text-muted-foreground">
+                  Use um endereço de email válido
+                </p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="register-password">Senha</Label>
@@ -229,6 +247,9 @@ export default function AuthPage() {
                   }
                   required
                 />
+                <p className="text-xs text-muted-foreground">
+                  A senha deve ter no mínimo 6 caracteres, com pelo menos uma letra minúscula, uma maiúscula e um número
+                </p>
               </div>
               <Button type="submit" className="w-full" disabled={submitting}>
                 {submitting ? "Criando..." : "Criar conta"}

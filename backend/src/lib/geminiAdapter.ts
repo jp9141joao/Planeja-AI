@@ -44,9 +44,17 @@ type TrainingDoc = {
 const MAX_INPUT_CHARS = 4000;
 const DEFAULT_FALLBACK =
   "Sem acesso ao Gemini agora. Anote seus próximos passos manualmente e tente novamente em instantes.";
-const MODEL_NAME = process.env.GEMINI_MODEL || "gemini-1.5-flash";
-const TEMPERATURE = Number(process.env.GEMINI_TEMPERATURE ?? "0.2") || 0.2;
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
+const PLACEHOLDER = "__EMPTY__";
+const getEnv = (k: string, d?: string) => {
+  const v = process.env[k];
+  if (v === undefined) return d;
+  if (v === PLACEHOLDER) return d;
+  return v;
+};
+
+const MODEL_NAME = getEnv("GEMINI_MODEL", "gemini-1.5-flash") as string;
+const TEMPERATURE = Number(getEnv("GEMINI_TEMPERATURE", "0.2")) || 0.2;
+const GEMINI_API_KEY = getEnv("GEMINI_API_KEY", "") as string;
 
 const client = GEMINI_API_KEY ? new GoogleGenerativeAI(GEMINI_API_KEY) : null;
 
@@ -74,8 +82,10 @@ const systemInstruction = (() => {
       .join("\n\n");
     chunks.push(formatted);
   }
+  const rawPrompt = getEnv("GEMINI_SYSTEM_PROMPT", "") as string;
+  const normalizedPrompt = rawPrompt ? rawPrompt.trim() : "";
   return (
-    process.env.GEMINI_SYSTEM_PROMPT?.trim() ||
+    (normalizedPrompt.length > 0 && normalizedPrompt) ||
     chunks.join("\n\n") ||
     "Você é o copiloto Planeja-AI."
   );

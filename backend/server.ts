@@ -50,16 +50,60 @@ app.use(
   })
 );
 
-// Configuração de CORS
+// Debug middleware - Log ALL requests BEFORE CORS
+app.use((req, res, next) => {
+  console.log(`🔍 [PRE-CORS] ${req.method} ${req.url}`);
+  console.log(`   Origin header: ${req.get("Origin") || "NOT SET"}`);
+  console.log(`   Host: ${req.get("Host")}`);
+  console.log(`   Referer: ${req.get("Referer") || "NOT SET"}`);
+  next();
+});
+
+// Configuração de CORS com logging para debug
+const allowedOrigins = NODE_ENV === "production"
+  ? [FRONTEND_URL]
+  : ["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:5173"];
+
+console.log(`🌍 CORS Configuration:`);
+console.log(`   NODE_ENV: ${NODE_ENV}`);
+console.log(`   FRONTEND_URL: ${FRONTEND_URL}`);
+console.log(`   Allowed Origins: ${allowedOrigins.join(", ")}`);
+
 app.use(
   cors({
-    origin:
-      NODE_ENV === "production"
-        ? [FRONTEND_URL]
-        : ["http://localhost:3000", "http://127.0.0.1:3000"],
+    origin: (origin, callback) => {
+      console.log(`🔄 [CORS CALLBACK] Origin: ${origin || "undefined"}`);
+
+      // Permitir requisições sem origin (mobile apps, Postman, curl, etc.)
+      if (!origin) {
+        console.log("✅ CORS: Allowing request with no origin");
+        return callback(null, true);
+      }
+
+      // Verificar se a origin está na lista de permitidas
+      if (allowedOrigins.includes(origin)) {
+        console.log(`✅ CORS: Allowing origin: ${origin}`);
+        callback(null, true);
+      } else {
+        console.warn(`🚫 CORS: Blocked origin: ${origin}`);
+        console.warn(`   Allowed origins: ${allowedOrigins.join(", ")}`);
+        console.warn(`   FRONTEND_URL env var: ${FRONTEND_URL}`);
+        callback(new Error(`Origin ${origin} not allowed by CORS`));
+      }
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "X-Requested-With",
+      "Accept",
+      "Origin",
+    ],
+    exposedHeaders: ["Set-Cookie"],
+    maxAge: 86400, // Cache preflight por 24 horas
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
   })
 );
 
